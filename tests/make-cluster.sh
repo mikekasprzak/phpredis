@@ -18,7 +18,7 @@ HOST="127.0.0.1"
 NODES=12
 REPLICAS=3
 START_PORT=7000
-END_PORT=`expr $START_PORT + $NODES`
+END_PORT=`expr $START_PORT + $NODES - 1`
 
 # Helper to determine if we have an executable
 checkExe() {
@@ -34,7 +34,7 @@ verboseRun() {
     $@
 }
 
-# Spawn a specific redis instance, cluster enabled 
+# Spawn a specific redis instance, cluster enabled
 spawnNode() {
     # Attempt to spawn the node
     verboseRun redis-server --cluster-enabled yes --dir $NODEDIR --port $PORT \
@@ -42,7 +42,7 @@ spawnNode() {
         --bind $HOST --dbfilename node-$PORT.rdb
 
     # Abort if we can't spin this instance
-    if [ $? -ne 0 ]; then 
+    if [ $? -ne 0 ]; then
         echo "Error:  Can't spawn node at port $PORT."
         exit 1
     fi
@@ -62,7 +62,7 @@ spawnNodes() {
 # Check to see if any nodes are running
 checkNodes() {
     echo -n "Checking port availability "
-    
+
     for PORT in `seq $START_PORT $END_PORT`; do
         redis-cli -p $PORT ping > /dev/null 2>&1
         if [ $? -eq 0 ]; then
@@ -71,7 +71,7 @@ checkNodes() {
             exit 1
         fi
     done
-    
+
     echo "OK"
 }
 
@@ -82,14 +82,19 @@ cleanConfigInfo() {
     verboseRun rm -f $NODEDIR/*
 }
 
-# Initialize our cluster with redis-trib.rb
+# Initialize our cluster with redis-cli
 initCluster() {
-    TRIBARGS=""
+    CLIARGS=""
     for PORT in `seq $START_PORT $END_PORT`; do
-        TRIBARGS="$TRIBARGS $HOST:$PORT"
+        CLIARGS="$CLIARGS $HOST:$PORT"
     done
 
-    verboseRun redis-trib.rb create --replicas $REPLICAS $TRIBARGS
+    REPLICAARGS=""
+    if [ $REPLICAS -gt 0 ]; then
+        REPLICAARGS="--replicas $REPLICAS"
+    fi
+
+    verboseRun redis-cli --cluster create $REPLICAARGS $CLIARGS
 
     if [ $? -ne 0 ]; then
         echo "Error:  Couldn't create cluster!"
@@ -119,9 +124,9 @@ stopCluster() {
     done
 }
 
-# Make sure we have redis-server and redis-trib.rb on the path
+# Make sure we have redis-server and redis-cli on the path
 checkExe redis-server
-checkExe redis-trib.rb
+checkExe redis-cli
 
 # Override the host if we've got $2
 if [[ ! -z "$2" ]]; then
