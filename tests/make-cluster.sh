@@ -91,7 +91,7 @@ initCluster() {
 
     REPLICAARGS=""
     if [ $REPLICAS -gt 0 ]; then
-        REPLICAARGS="--replicas $REPLICAS"
+        REPLICAARGS="--cluster-replicas $REPLICAS"
     fi
 
     verboseRun redis-cli --cluster create $REPLICAARGS $CLIARGS
