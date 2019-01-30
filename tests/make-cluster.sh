@@ -84,17 +84,17 @@ cleanConfigInfo() {
 
 # Initialize our cluster with redis-cli
 initCluster() {
-    CLIARGS=""
+    CLI_ARGS=""
     for PORT in `seq $START_PORT $END_PORT`; do
-        CLIARGS="$CLIARGS $HOST:$PORT"
+        CLI_ARGS="$CLI_ARGS $HOST:$PORT"
     done
 
-    REPLICAARGS=""
+    REPLICA_ARGS=""
     if [ $REPLICAS -gt 0 ]; then
-        REPLICAARGS="--cluster-replicas $REPLICAS"
+        REPLICA_ARGS="--cluster-replicas $REPLICAS"
     fi
 
-    verboseRun redis-cli --cluster create $REPLICAARGS $CLIARGS
+    verboseRun redis-cli --cluster create $REPLICA_ARGS $CLI_ARGS
 
     if [ $? -ne 0 ]; then
         echo "Error:  Couldn't create cluster!"
