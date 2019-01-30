@@ -19,6 +19,8 @@ NODES=12
 REPLICAS=3
 START_PORT=7000
 END_PORT=`expr $START_PORT + $NODES - 1`
+BIND=true
+PROTECTED=true
 
 # Helper to determine if we have an executable
 checkExe() {
@@ -36,10 +38,22 @@ verboseRun() {
 
 # Spawn a specific redis instance, cluster enabled
 spawnNode() {
+    # In case we don't want to bind (i.e. Redis will listen on any IP)
+    BIND_ARGS=""
+    if [ "$BIND" = true ]; then
+        BIND_ARGS="--bind $HOST"
+    fi
+
+    # Protected mode is yes by default. This gives us the option to disable it
+    PROTECTED_ARGS=""
+    if [ "$PROTECTED" = false ]; then
+        PROTECTED_ARGS="--protected-mode no"
+    fi
+
     # Attempt to spawn the node
     verboseRun redis-server --cluster-enabled yes --dir $NODEDIR --port $PORT \
         --cluster-config-file node-$PORT.conf --daemonize yes --save \'\' \
-        --bind $HOST --dbfilename node-$PORT.rdb
+        $BIND_ARGS $PROTECTED_ARGS --dbfilename node-$PORT.rdb
 
     # Abort if we can't spin this instance
     if [ $? -ne 0 ]; then
